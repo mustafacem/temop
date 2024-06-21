@@ -1,0 +1,13 @@
+tesseract
+tesseract-ocr
+pytesseract
+transformers
+pyheif
+pillow
+docx
+openai==0.28
+python-docx
+openpyxl
+torch
+torchaudio
+soundfile
