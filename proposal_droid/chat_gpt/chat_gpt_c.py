@@ -4,10 +4,9 @@ import requests
 
 
 
-openai.api_key = 'REMOVED0LI8VAuJzBd8rtJS3EokT3BlbkFJmA4YBBDHdxpD532MWcCJ'
-api_key = 'REMOVED0LI8VAuJzBd8rtJS3EokT3BlbkFJmA4YBBDHdxpD532MWcCJ'
-def rn():
-    print("ı work")
+openai.api_key = 'key'
+api_key = 'key'
+
 def ask_chatgpt(question):
     """
     for infrancing the bussnies proposal
