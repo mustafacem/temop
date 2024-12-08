@@ -1,0 +1,7 @@
+services:
+  proposal_droid:
+    image: "knowdroids:5000/proposal_droid"
+    build:
+      dockerfile: Dockerfile
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}

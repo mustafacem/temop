@@ -1,0 +1,9 @@
+services:
+  proposal_droid:
+    extends:
+      file: ./docker-compose.yaml
+      service: proposal_droid
+    volumes:
+      - ./:/app/
+    ports:
+      - 8501:8501

@@ -11,9 +11,11 @@ from openpyxl.styles import PatternFill, Font, Alignment
 from docx import Document
 from docx.shared import Inches
 
-from ocr_processing.ocr_processing_c import *
-from chat_gpt.chat_gpt_c import *
-from whisper_speech_to_text.whisper_speech_to_text_c import *
+from proposal_droid.ocr_processing.ocr_processing import *
+from proposal_droid.chat_gpt.chat_gpt import *
+from proposal_droid.whisper_speech_to_text.whisper_speech_to_text import *
+
+import io
 
 def create_document(image_path, items_dict, doc_path='output.docx'):
     """
@@ -64,6 +66,55 @@ def create_document(image_path, items_dict, doc_path='output.docx'):
     # Save the document
     doc.save(doc_path)
     print(f'Document saved as {doc_path}')
+
+def create_document_2(image_path, items_dict):
+    """
+    Create a DOCX proposal document and return it as a binary stream.
+    """
+    # Create a new Document
+    doc = Document()
+
+    # Add an image to the document
+    doc.add_picture(image_path, width=Inches(5))
+
+    # Add a paragraph for spacing
+    doc.add_paragraph()
+
+    # Dictionary with categories and their explanations
+    categories_explanations = {
+        "Target functionality": items_dict.get("Target functionality", ""),
+        "Solution": items_dict.get("Solution", ""),
+        "Inputs": items_dict.get("Inputs", ""),
+        "Outputs": items_dict.get("Outputs", ""),
+        "Requirements and assumptions": items_dict.get("Requirements and assumptions", ""),
+        "Human review of outputs": items_dict.get("Human review of outputs", ""),
+        "PoC vs production implementation": items_dict.get("PoC vs production implementation", ""),
+        "Post-PoC improvements and functionality add-ons": items_dict.get("Post-PoC improvements and functionality add-ons", ""),
+        "Infrastructure": items_dict.get("Infrastructure", ""),
+        "Limitations": items_dict.get("Limitations", ""),
+        "Budget": items_dict.get("Budget", ""),
+    }
+
+    # Add a table with two columns
+    table = doc.add_table(rows=1, cols=2)
+
+    # Set the header row
+    hdr_cells = table.rows[0].cells
+    hdr_cells[0].text = 'Category'
+    hdr_cells[1].text = 'Explanation'
+
+    # Add the categories and their explanations to the table
+    for category, explanation in categories_explanations.items():
+        row_cells = table.add_row().cells
+        row_cells[0].text = category
+        row_cells[1].text = explanation
+
+    # Save the document to a binary stream
+    docx_stream = io.BytesIO()
+    doc.save(docx_stream)
+    docx_stream.seek(0)
+
+    return docx_stream
 
 def create_excel_with_values(notes, file_name='price_estimate.xlsx'):
     """
@@ -162,46 +213,109 @@ def update_excel_file(file_name='price_estimate.xlsx'):
     print(f"Excel file '{file_name}' updated successfully.")
 
 
-def ask_recording_type():
-  """
-  choose way of asking for recording or writing
-  """
-  while True:
-    recording_type = input("Would you like to use image or audio recording (image/audio)? ").lower()
-    if recording_type in ("image", "audio"):
-      if recording_type == "image":
-        lan = input("You chose ocr, openai, opensource, microsoft? ")
-        if lan =="openai":
-          path = input("enter path ")
-          output = extract_text_from_image(api_key,path)
-          output = decoder(output,decoder_prompt_2)
-          return output
-        elif lan == "opensource":
-          path = input("enter path ")
-          output = tes_ext(path)
-          output = decoder(output,decoder_prompt_2)
-          return output
-        elif lan == "microsoft":
-          path = input("enter path ")
-          output = load_model_and_predict(path)
-          output = decoder(output,decoder_prompt_2)
-          return output
+
+def create_excel_with_values_2(notes):
+    """
+    creation of excel for the budget
+    """
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Price Estimate"
+
+    # Merge cells for title
+    ws.merge_cells('A1:D1')
+    title_cell = ws['A1']
+    title_cell.value = "Price Estimate"
+    title_cell.font = Font(bold=True, size=14)
+    title_cell.alignment = Alignment(horizontal="center")
+    title_cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+
+    # Add headers with styles
+    headers = ["Mandays Min", "Mandays Min + Extra", "Mandays Max", "Mandays Max + Extra"]
+    header_fill_min = PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+    header_fill_max = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
+
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal="center")
+        if "Max" in header:
+            cell.fill = header_fill_max
         else:
-          print("Invalid choice")
-      elif recording_type == "audio":
-        lan = input("You chose audio, is audio czech or english ?")
-        if lan == "czech":
-          path = input("enter path ")
-          output = transcribe_czech_audio(path)
-          return output
-        elif lan == "english":
-          path = input("enter path ")
-          output = transcribe_english_audio(path)
-          return output
+            cell.fill = header_fill_min
+
+    values = [0, 1, 2, 3]
+
+    for col_num, value in enumerate(values, 1):
+        value_cell = ws.cell(row=3, column=col_num)
+
+        if value == 0:
+            aspect = "Mandays Min"
+        elif value == 1:
+            aspect = "Mandays Min + Extra"
+        elif value == 2:
+            aspect = "Mandays Max"
+        elif value == 3:
+            aspect = "Mandays Max + Extra"
+
+        value_cell.value = mandays_chatgpt(notes, aspect)
+        value_cell.alignment = Alignment(horizontal="center")
+
+        if col_num == 2 or col_num == 4:
+            value_cell.fill = header_fill_max
         else:
-          print("Invalid choice")
-    else:
-      print("Invalid choice. Please enter 'image', 'audio'.")
+            value_cell.fill = header_fill_min
+
+    # Switch the background colors of B3 and C3
+    ws['B3'].fill = header_fill_min
+    ws['C3'].fill = header_fill_max
+
+    # Set column widths to fit longer labels
+    for col_num, header in enumerate(headers, 1):
+        max_length = len(header)
+        for row in ws.iter_rows(min_row=2, max_row=3, min_col=col_num, max_col=col_num):
+            for cell in row:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = adjusted_width
+
+    # Save the workbook to a BytesIO buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+def update_excel_file_2(file_name='price_estimate.xlsx'):
+    """
+    update excel file with new values
+    """
+    wb = openpyxl.load_workbook(file_name)
+    ws = wb.active
+
+    print("Here are the current values:")
+    values = []
+    headers = ["Mandays Min", "Mandays Min + Extra", "Mandays Max", "Mandays Max + Extra"]
+    for col_num, header in enumerate(headers, 1):
+        value = ws.cell(row=3, column=col_num).value
+        values.append(value)
+        print(f"{header}: {value}")
+
+    # Ask user for each value individually
+    for i, (header, value) in enumerate(zip(headers, values)):
+        update = input(f"Are you happy with the value for {header} ({value})? (yes/no): ").strip().lower()
+        if update == 'no':
+            new_value = int(input(f"Enter new value for {header}: "))
+            ws.cell(row=3, column=i + 1, value=new_value).alignment = Alignment(horizontal="center")
+
+    # Save the workbook to a BytesIO buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
 
 
 
@@ -782,3 +896,149 @@ vbnet
         Combination -> things are possible
 
 Use these patterns and examples to accurately convert OCR outputs to the intended texts. Ensure clarity, correct terminology, and proper formatting in the final text."""
+
+
+decoder_prompt_3 = """
+Observations:
+
+    Character Misrecognition: OCR often misreads characters, e.g., "hand" instead of "hard," "ECB" instead of "ECA."
+    Word Misrecognition: OCR sometimes misinterprets words entirely, e.g., "preorbital swelling" instead of a completely different phrase.
+    Formatting Issues: Punctuation and capitalization may be inconsistent or missing.
+    Partial Phrases: OCR may capture incomplete or jumbled phrases.
+
+Decoder Prompt:
+
+Decoder Instructions for Converting OCR Outputs to Intended Texts:
+
+    Character Correction:
+        Review common OCR misrecognitions and correct them. For example, replace "hand" with "hard," "ECB" with "ECA," and ensure biocompatible is capitalized correctly.
+
+    Word Correction:
+        Look for context clues to determine correct words. For instance, if the OCR output mentions "preorbital swelling," check the intended text for a related but contextually accurate phrase.
+        Correct specific terms frequently misinterpreted by OCR, such as "biotics" to "KPIs."
+
+    Consistency in Formatting:
+        Ensure proper capitalization of specific terms, especially at the beginning of sentences and for proper nouns.
+        Correct punctuation as needed, adding commas, periods, and hyphens where necessary.
+
+    Contextual Understanding:
+        Use the context provided by the surrounding text to make sense of ambiguous or unclear words. For example, if "IP" is followed by "subjects NDA glucose," the intended text may refer to "IP includes NDA, adherence crystals."
+
+    Structural Corrections:
+        Ensure that bullet points, numbering, and section headings match the intended structure. For example, if a list is present, ensure each item is correctly numbered and formatted.
+
+Example Conversions:
+
+OCR Output:
+"1- similar to hand structures of the body, ECB, biocompatible, bio-degradable"
+
+Intended Text:
+"1 - similar to hard structures of the body, ECA, Biocompatible, Bio-degradable,"
+
+OCR Output:
+"how can they "hurt the target?"
+
+    oxygen
+    heat
+    cell
+    organelles"
+
+Intended Text:
+"how can they "hit" the target?
+
+    oxygen
+    heat
+    cells
+    organelles"
+
+Decoder Prompt:
+
+vbnet
+
+Given the OCR output, apply the following corrections to produce the intended text:
+
+1. Correct common character misrecognitions, such as replacing "hand" with "hard" and "ECB" with "ECA."
+2. Use context to determine correct words, e.g., replacing "biotics" with "KPIs."
+3. Ensure proper capitalization and punctuation throughout the text.
+4. Maintain the intended structure, including bullet points, numbering, and section headings.
+
+Example:
+OCR Output: "1- similar to hand structures of the body, ECB, biocompatible, bio-degradable"
+Intended Text: "1 - similar to hard structures of the body, ECA, Biocompatible, Bio-degradable,"
+
+By following this structured prompt, the task of converting OCR outputs to the intended texts can be approached methodically, improving accuracy and efficiency.
+"""
+decoder_prompt_4 ="""
+OCR Outputs:
+
+    "Bt, ou hanay” Veblen A prodbud bj te ax, regray” VEU lila, A proba be 4 hf Yolen ae"
+    "7 — chine fo Ped chil’ 0 Je hee, BCb2 ) Plotepdhp, Bre -Chydee,"
+    "Pie AL Vrs, wy — Zhe see I To ee Cae a ile : : “ a as AY / ‘ BS IM a Lege AS ae SOP ime oe Bac” cles gah Bt Pb (004. "1 Opp, 0 “oboe OR - jirswits pb OG a — EN rn = 4) Whe 1 Yh YR re (ome pa wy @) Foe can Yong “UE PA PGT So a se eS “2 es ee Le ee a _ Ow hin ett = aa 4) be A bere Ye ts waleuteg F Where eo —n/o mt LO Meta, © = — SS hee w hovtgn ve, Cle Wepes © oo e 4 — ety ln J obilut 06 Ju per. , C07 plotdarhhh, Bre > iad - hb , Of}ey r9
+    Yl £000"-$2)27 ; = : 5 7 —s nnehbe, vith bh ony h Friucg o rhe . 7 h- O11 a ah - Ye Ges bxbe A hip cll sible = " , Lyiy| clube & e1 ben et hepwpbble, > AS Gu Zttintti ii = * ; bt Sou ln , od NPs, Veve, Jayotns lable, ast lin Can, biases, Cer Thy Se aes le ale =Cb ty aad i a fF 1, of Stich a) aM ee aa . a — nepal counulia, chs be a 2 - 2 bfaliuih , Vay Fy s Vt tty $¢ Gili A be pby Cth [Cpt rene / lye, ;"
+
+Decoder Prompt:
+
+Decoder Instructions for Converting OCR Outputs to Intended Text:
+
+    Identify Common Patterns:
+        Review all provided OCR outputs for common patterns and discrepancies.
+        Note that OCR outputs may vary significantly in character recognition and word formation.
+
+    Correct Common Misrecognitions:
+        Replace commonly misrecognized characters with the correct ones, e.g., replace "hanay" with "hand," "BCb2" with "ECA."
+        Fix punctuation and capitalization inconsistencies.
+
+    Use Context Clues:
+        Use the surrounding context to determine the intended words and phrases. For example, if "Bt, ou hanay" is repeated in another OCR output as "chin fo Ped chil'," consider the possibility of the intended text being related to "similar to hard structures."
+
+    Reconstruct Fragmented Texts:
+        Merge fragmented phrases and sentences based on the logical flow of the text. For instance, "0 Je hee, BCb2 ) Plotepdhp, Bre -Chydee," can be reconstructed with the intended scientific terminology and structure.
+
+    Ensure Consistency and Coherence:
+        Ensure the final text is coherent and consistent in structure, grammar, and meaning.
+
+Example Conversion:
+
+OCR Output 1:
+"Bt, ou hanay” Veblen A prodbud bj te ax, regray” VEU lila, A proba be 4 hf Yolen ae"
+
+OCR Output 2:
+"7 — chine fo Ped chil’ 0 Je hee, BCb2 ) Plotepdhp, Bre -Chydee,"
+
+OCR Output 3:
+"Pie AL Vrs, wy — Zhe see I To ee Cae a ile : : “ a as AY / ‘ BS IM a Lege AS ae SOP ime oe Bac” cles gah Bt Pb (004. "1 Opp, 0 “oboe OR - jirswits pb OG a — EN rn = 4) Whe 1 Yh YR re (ome pa wy @) Foe can Yong “UE PA PGT So a se eS “2 es ee Le ee a _ Ow hin ett = aa 4) be A bere Ye ts waleuteg F Where eo —n/o mt LO Meta, © = — SS hee w hovtgn ve, Cle Wepes © oo e 4 — ety ln J obilut 06 Ju per. , C07 plotdarhhh, Bre > iad - hb , Of}ey r9
+Yl £000"-$2)27 ; = : 5 7 —s nnehbe, vith bh ony h Friucg o rhe . 7 h- O11 a ah - Ye Ges bxbe A hip cll sible = " , Lyiy| clube & e1 ben et hepwpbble, > AS Gu Zttintti ii = * ; bt Sou ln , od NPs, Veve, Jayotns lable, ast lin Can, biases, Cer Thy Se aes le ale =Cb ty aad i a fF 1, of Stich a) aM ee aa . a — nepal counulia, chs be a 2 - 2 bfaliuih , Vay Fy s Vt tty $¢ Gili A be pby Cth [Cpt rene / lye, ;"
+
+Intended Text:
+
+vbnet
+
+how can they "hit" the target?
+- oxygen
+- heat
+- cells
+- organelles
+
+how influence the shape?
+how obtain the dry molecules? Where to - including labs culture?
+
+How is bigger affecting?
+
+similar to hard structures of the body, ECA, biocompatible, bio-degradable.
+flexible -> other materials, semi-solid, ...
+IP -> includes NDA, adherence crystals
+
+containment + retrieval - can it be degraded & kept stable
+
+therapeutic cargo
+physical effects & working of nanoparticles -> different geometries
+of the structures. Untested NDs, more hyperactive states.
+can carry universal cargoes. They can influence properties - charge, ...
+stability, when building ix.
+affinity to bound -> cells
+networks connecting particles
+solubility? tagging; it can be added to other containment layers
+combination -> things are possible.
+
+By following these steps, you can accurately decode the OCR outputs to the intended texts.
+"""

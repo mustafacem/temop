@@ -2,25 +2,33 @@ import cv2
 import numpy as np
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
-import pytesseract
+#import pytesseract
 
 
 import openai
 import base64
 import requests
+import streamlit as st
+
+from io import BytesIO
 
 
-def extract_text_from_image(api_key, image_path):
+def extract_text_from_image(api_key, uploaded_file):
     """
-    tanslating image to base64 and then performaning ocr on it
+    Translate image to base64 and then perform OCR on it.
     """
     # Function to encode the image
-    def encode_image(image_path):
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+    def encode_image(file):
+        return base64.b64encode(file.read()).decode('utf-8')
 
-    # Encode the image
-    base64_image = encode_image(image_path)
+    # Convert PIL Image to BytesIO object if necessary
+    if isinstance(uploaded_file, Image.Image):
+        buffered = BytesIO()
+        uploaded_file.save(buffered, format="JPEG")
+        buffered.seek(0)
+        base64_image = encode_image(buffered)
+    else:
+        base64_image = encode_image(uploaded_file)
 
     # Define headers and payload for the API request
     headers = {
@@ -36,7 +44,7 @@ def extract_text_from_image(api_key, image_path):
                 "content": [
                     {
                         "type": "text",
-                        "text":  "you are given handwritten text image which you are tasked to convert it to text, just provide the text nothing else no expelenation "
+                        "text": "you are given a handwritten text image which you are tasked to convert to text, just provide the text nothing else no explanation"
                     },
                     {
                         "type": "image_url",
@@ -64,31 +72,30 @@ def extract_text_from_image(api_key, image_path):
         return f"Error: {response.status_code} - {response.text}"
 
 
-
-def preprocess_handwritten_image(image_path):
+def preprocess_handwritten_image(uploaded_file):
     """
-    prepare image for ocr
+    Preprocess the uploaded handwritten image file for OCR and return the preprocessed image.
     """
-    # Load the image
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    # Load the image from the uploaded file
+    image = Image.open(uploaded_file).convert('L')
+    image_np = np.array(image)
 
     # Check if the image is loaded properly
-    if image is None:
-        print(f"Error: Unable to load image at {image_path}")
-        return
+    if image_np is None:
+        st.error("Error: Unable to load image.")
+        return None
 
     # Step 1: Noise reduction
-    denoised_image = cv2.medianBlur(image, 1)
-    #display_image('Denoised Image', denoised_image)
+    denoised_image = cv2.medianBlur(image_np, 1)
 
     # Step 2: Binarization
     _, binary_image = cv2.threshold(denoised_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    #display_image('Binary Image', binary_image)
 
-    # Save the preprocessed image
-    cv2.imwrite('preprocessed_handwritten_image.jpg', binary_image)
+    # Convert the binary image back to PIL Image format for OCR
+    preprocessed_image = Image.fromarray(binary_image)
 
-    print("Preprocessing complete and image saved as 'preprocessed_handwritten_image.jpg'")
+    return preprocessed_image
+
 
 def load_model_and_predict(image_path):
     """
@@ -113,10 +120,5 @@ def load_model_and_predict(image_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
-def tes_ext(path):
-  """
-  OCR by tesseract worst option
-  """
-  custom_config = r'--oem 3 --psm 6'
-  raw_text_4 = pytesseract.image_to_string(path, config=custom_config)
-  return raw_text_4
+
+
