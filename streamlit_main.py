@@ -29,9 +29,6 @@ def create_docx(items_dict):
     return buffer
 
 def main():
-    st.title("Proposal Droid_01")
-
-    load_dotenv("op.env")
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if openai_api_key:
         # Initialize OpenAI API with the provided key
@@ -290,7 +287,7 @@ def main():
         st.success("Reset completed!")
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(override=True)
 
     st_init(auth=True, notice=False, feedback=False, title="ProposalDroid", language=LanguageUI.CZ)
     main()
