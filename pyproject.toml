@@ -30,7 +30,7 @@ webdriver-manager = "^4.0.2"
 
 [tool.poetry.group.core.dependencies]
 kd-streamlit= { path = "droid-core/packages/kd_streamlit", develop = true}
-
+kd-logging = {path = "droid-core/packages/kd_logging", develop = true}
 
 [build-system]
 requires = ["poetry-core"]

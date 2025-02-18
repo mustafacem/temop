@@ -17,7 +17,7 @@ RUN pip install poetry
 
 COPY ./poetry.lock ./
 COPY ./pyproject.toml ./
-RUN poetry install --no-interaction --no-cache --no-ansi
+RUN poetry install --no-interaction --no-cache --no-ansi --no-root
 RUN pip install pyheif
 
 COPY ./proposal_droid/ ./proposal_droid
