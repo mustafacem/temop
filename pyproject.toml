@@ -28,6 +28,9 @@ python-dotenv = "^1.0.1"
 selenium = "^4.27.1"
 webdriver-manager = "^4.0.2"
 
+[tool.poetry.group.core.dependencies]
+kd-streamlit= { path = "droid-core/packages/kd_streamlit", develop = true}
+
 
 [build-system]
 requires = ["poetry-core"]
