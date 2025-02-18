@@ -1,0 +1,49 @@
+name: Deploy to custom host
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        type: string
+        description: A host on which the deployment will be available
+        required: true
+        default: 'proposaldroid.knowdroids.ai'
+      path_prefix:
+        type: string
+        description: The part following the first slash after domain (e.g. /dev)
+        required: false
+        default: '/'
+
+jobs:
+  build_docker_images:
+    name: 'Build docker images'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: 'true'
+      - run: git submodule update --init --recursive
+      - run: echo '${{ vars.ENV }}' > .env
+      - run: echo '${{ vars.STREAMLIT_SECRETS_TOML }}' > .streamlit/secrets.toml
+      - name: build
+        run: 'docker compose build'
+  push_docker_images:
+    name: 'Push built images to registry'
+    needs: build_docker_images
+    runs-on: self-hosted
+    steps:
+      - run: 'docker compose push'
+
+  stack_deploy:
+    name: 'Deploy built images to swarm'
+    needs: push_docker_images
+    runs-on: self-hosted
+    steps:
+      - name: Set the value
+        run: |
+              echo PREFIX_WITH_DASHES=$(echo ${{ inputs.path_prefix }} | tr "./" "-_") >> $GITHUB_ENV
+              echo HOST_WITH_DASHES=$(echo ${{ inputs.host }} | tr "." "-") >> $GITHUB_ENV
+      - run: echo DEPLOYMENT_ID=${{ github.event.repository.name }}--${{ env.HOST_WITH_DASHES }}--${{ env.PREFIX_WITH_DASHES }} >> $GITHUB_ENV
+      - run: |
+              echo HOST=${{ inputs.host }} >> $GITHUB_ENV
+              echo PATH_PREFIX=${{ inputs.path_prefix }} >> $GITHUB_ENV
+      - run: 'docker stack deploy --compose-file docker-compose.yml ${{ env.DEPLOYMENT_ID }}'

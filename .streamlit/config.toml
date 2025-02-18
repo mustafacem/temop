@@ -1,0 +1,4 @@
+# this is needed for local development with docker
+[server]
+# you will need this if running docker on windows host:
+fileWatcherType = "poll"
