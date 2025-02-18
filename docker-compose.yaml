@@ -1,7 +1,28 @@
 services:
   proposal_droid:
     image: "knowdroids:5000/proposal_droid"
+    networks:
+      - default
+      - traefik-public
     build:
+      context: ./
       dockerfile: Dockerfile
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - mounted_data:/app/mounted_data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.${DEPLOYMENT_ID}.entrypoints=websecure"
+      - "traefik.http.routers.${DEPLOYMENT_ID}.rule=Host(`${HOST}`) && PathPrefix(`${PATH_PREFIX}`)"
+      - "traefik.http.middlewares.${DEPLOYMENT_ID}--strip-prefix.stripprefix.prefixes=${PATH_PREFIX}"
+      - "traefik.http.routers.${DEPLOYMENT_ID}.middlewares=${DEPLOYMENT_ID}--strip-prefix"
+      - "traefik.http.routers.${DEPLOYMENT_ID}.tls.certresolver=myresolver"
+
+volumes:
+  mounted_data:
+
+networks:
+    traefik-public:
+        external: true

@@ -15,12 +15,16 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 RUN pip install poetry
 
+COPY ./droid-core/packages ./droid-core/packages
+
 COPY ./poetry.lock ./
 COPY ./pyproject.toml ./
 RUN poetry install --no-interaction --no-cache --no-ansi --no-root
 RUN pip install pyheif
 
-COPY ./proposal_droid/ ./proposal_droid
-COPY ./streamlit_main.py ./
+COPY . ./
+
+EXPOSE 8501
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
 
 CMD ["/bin/sh", "-c", "python -m streamlit run streamlit_main.py --server.port=8501 --server.address=0.0.0.0"]
