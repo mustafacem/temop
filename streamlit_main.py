@@ -1,14 +1,137 @@
 import streamlit as st
 from proposal_droid.doc_creation.doc_creation import create_excel_with_values_2
 from proposal_droid.ocr_processing.ocr_processing import preprocess_handwritten_image, extract_text_from_image
-from proposal_droid.whisper_speech_to_text.whisper_speech_to_text import transcribe_audio # transcribe_czech_audio, transcribe_english_audio
+from proposal_droid.whisper_speech_to_text.whisper_speech_to_text import transcribe_audio  # transcribe_czech_audio, transcribe_english_audio
 from proposal_droid.data_from_web.data_from_web import transcribe_english_youtube, extract_text_from_url
-from kd_streamlit import st_init, LanguageUI
 import os
 from io import BytesIO
 import openai
 from docx import Document
-from dotenv import load_dotenv
+
+
+def ask_chatgpt(question):
+    """
+    Inference for business proposal generation.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else."},
+                {"role": "user", "content": question},
+            ]
+        )
+        answer = response.choices[0].message.content 
+        return answer
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
+def mandays_chatgpt(notes, aspect):
+    """
+    Guess mandays for the given aspect for pricing estimation in an AI startup.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": f"You are tasked with guessing {aspect} for price estimates for an AI startup. You will only receive notes and return an integer—nothing else."},
+                {"role": "user", "content": notes},
+            ]
+        )
+        answer = response.choices[0].message.content 
+        return answer
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
+def checker(item, part):
+    """
+    AI checks if the provided text is suitable for the given part of a business proposal and recommends changes if needed.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are tasked with checking if the provided text is suitable for the given part of a business proposal. If you think changes should be made, provide your recommendations, but keep them as short as possible."},
+                {"role": "user", "content": f"Part of business proposal: {item}. Provided text: {part}."},
+            ]
+        )
+        answer = response.choices[0].message.content 
+        return answer
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
+def decoder(ocr_output, decoder_prompt):
+    """
+    Translate OCR output from bad handwriting into readable text.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": f"You are tasked with creating readable text from bad OCR handwriting output. Follow these instructions for translation: {decoder_prompt}"},
+                {"role": "user", "content": ocr_output},
+            ]
+        )
+        answer = response.choices[0].message.content 
+        return answer
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
+def process_items(items_dict, notes):
+    """
+    AI generates necessary parts of the proposal and assigns them to items_dict. User can modify them via prompts.
+    """
+    use_case_description = ask_chatgpt(f"Generate a use case description from the given notes: {notes}")
+    if use_case_description is None:
+        print("Failed to generate use case description.")
+        return
+
+    print(f"Use case description: {use_case_description}")
+    response = input("Would you like to enter a custom use case description? (y/n): ").strip().lower()
+    if response == 'y':
+        use_case_description = input("Enter the desired use case description: ")
+
+    for item in items_dict:
+        task_successful = False
+        desired_changes = ""
+        while not task_successful:
+            prompt = f"{desired_changes} Generate {item} for a business proposal for {use_case_description} from the following notes: {notes}."
+            value = ask_chatgpt(prompt)
+
+            if value is None:
+                print(f"Failed to generate {item}.")
+                continue
+
+            print(f"Assigned value for {item}: {value}")
+            print("******************************************************************************************************************************")
+            opinion_ai = checker(item, value)
+
+            if opinion_ai is None:
+                print("Failed to check AI's opinion on this part.")
+                continue
+
+            print(f"As AI, my opinion on this part of the proposal is: {opinion_ai}")
+
+            response = input("Happy with the output? (y/n): ").strip().lower()
+            if response == 'y':
+                task_successful = True
+                items_dict[item] = value
+                print(f"Value for {item} confirmed: {value}\n")
+            else:
+                desired_changes = input(f"Enter desired changes for {item}: ")
+
+    print("Finalized proposal items:")
+    for key, value in items_dict.items():
+        print(f"{key}: {value}")
+
 
 def create_docx(items_dict):
     doc = Document()
@@ -26,12 +149,12 @@ def create_docx(items_dict):
     buffer.seek(0)
     return buffer
 
+
 def main():
     
     openai_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
     if openai_api_key:
         openai.api_key = openai_api_key
-    from proposal_droid.chat_gpt.chat_gpt import  ask_chatgpt , checker
 
     # Initialize session state variables
     if "notes" not in st.session_state:
@@ -101,7 +224,6 @@ def main():
                 if preprocessed_image is not None:
                     st.image(preprocessed_image, caption="Preprocessed Image", use_column_width=True)
 
-            # ocr_method = st.selectbox("Select OCR method:", ["Method 1", "Method 2", "Method 3"])
             if st.button("Extract Text from Image"):
                 image_to_process = preprocessed_image if preprocess else uploaded_file
                 st.session_state.notes = extract_text_from_image(openai_api_key, image_to_process)
@@ -115,9 +237,9 @@ def main():
             if st.button("Transcribe Audio"):
                 with st.spinner('Transcribing audio...'):
                     if language == "Czech":
-                        st.session_state.notes = transcribe_audio(uploaded_file,"czech",15)
+                        st.session_state.notes = transcribe_audio(uploaded_file, "czech", 15)
                     elif language == "English":
-                        st.session_state.notes = transcribe_audio(uploaded_file,"english",15)
+                        st.session_state.notes = transcribe_audio(uploaded_file, "english", 15)
                 st.success("Transcription completed!")
                 st.session_state.notes_finalized = False  # Reset for navigation
 
@@ -194,12 +316,10 @@ def main():
             st.write(st.session_state.use_case_description)
             if st.button("Edit Use Case Description"):
                 st.session_state.use_case_finalized = False
-                # Go back to Generate Use Case tab
                 selected_tab = "Generate Use Case"
                 st.experimental_rerun()
 
             keys = list(st.session_state.items_dict.keys())
-            # Exclude 'Use Case Description' from proposal items
             proposal_keys = [k for k in keys if k != "Use Case Description"]
 
             if st.session_state.current_item_index < len(proposal_keys):
@@ -209,7 +329,7 @@ def main():
                     prompt = f"Generate a short 2-4 sentence {current_key} for a business proposal based on the following use case description: {st.session_state.use_case_description}"
                     value = ask_chatgpt(prompt)
                     st.session_state.items_dict[current_key] = value
-                    opinion_ai = checker(st.session_state.items_dict[current_key], value)
+                    opinion_ai = checker(current_key, value)
                 else:
                     opinion_ai = ""
 
@@ -231,27 +351,16 @@ def main():
                     )
                     if st.button(f"Save {current_key}", key=f"save_{current_key}"):
                         st.session_state.items_dict[current_key] = edited_value
-                        #st.session_state.current_item_index += 1
                         st.success(f"{current_key} updated!")
-                        opinion_ai = checker(st.session_state.items_dict[current_key], edited_value)
+                        opinion_ai = checker(current_key, edited_value)
 
                 elif action == "Add":
                     additional_value = st.text_area(f"Add to {current_key}:", key=f"add_{current_key}")
                     if st.button(f"Add to {current_key}", key=f"add_confirm_{current_key}"):
-                        # Create a new prompt for adding content based on the additional input
                         prompt_for_reg = f"Expand the {current_key} for the business proposal based on the following additional information: {additional_value} and the use case description: {st.session_state.use_case_description}"
-                        
-                        # Ask ChatGPT to generate new content based on the additional information
                         new_value = ask_chatgpt(prompt_for_reg)
-                        
-                        # Append the new value to the existing content (you can modify how you combine this)
                         st.session_state.items_dict[current_key] += f"\nAdditional content:\n{new_value}"
-                        
-                        # Move to the next item
-                        #st.session_state.current_item_index += 1
                         st.success(f"Added to {current_key}!")
-
-
             else:
                 st.success("All items processed! Proceed to the 'Download' tab.")
         else:
@@ -260,7 +369,6 @@ def main():
     # Tab 5: Download
     elif selected_tab == "Download":
         if st.session_state.current_item_index >= len(st.session_state.items_dict.keys()) - 1:
-            # Create and download the DOCX file
             docx_buffer = create_docx(st.session_state.items_dict)
             st.download_button(
                 label="Download DOCX",
@@ -269,8 +377,7 @@ def main():
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
 
-            # Create and download the Excel file
-            excel_buffer = create_excel_with_values_2(st.session_state.notes)  # Ensure this function exists
+            excel_buffer = create_excel_with_values_2(st.session_state.notes)
             st.download_button(
                 label="Download Excel",
                 data=excel_buffer,
@@ -285,8 +392,6 @@ def main():
         st.session_state.clear()
         st.success("Reset completed!")
 
-if __name__ == "__main__":
-    load_dotenv(override=True)
 
-    st_init(auth=True, notice=False, feedback=False, title="ProposalDroid", language=LanguageUI.CZ)
+if __name__ == "__main__":
     main()
