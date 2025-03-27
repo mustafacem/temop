@@ -1,5 +1,4 @@
 import streamlit as st
-from proposal_droid.chat_gpt.chat_gpt import  ask_chatgpt , checker
 from proposal_droid.doc_creation.doc_creation import create_excel_with_values_2
 from proposal_droid.ocr_processing.ocr_processing import preprocess_handwritten_image, extract_text_from_image
 from proposal_droid.whisper_speech_to_text.whisper_speech_to_text import transcribe_audio # transcribe_czech_audio, transcribe_english_audio
@@ -32,6 +31,7 @@ def main():
     openai_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
     if openai_api_key:
         openai.api_key = openai_api_key
+    from proposal_droid.chat_gpt.chat_gpt import  ask_chatgpt , checker
 
     # Initialize session state variables
     if "notes" not in st.session_state:
