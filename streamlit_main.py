@@ -9,12 +9,13 @@ import openai
 from docx import Document
 
 
+
 def ask_chatgpt(question):
     """
     Inference for business proposal generation.
     """
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else."},
@@ -26,6 +27,7 @@ def ask_chatgpt(question):
     except Exception as e:
         print(f"Error: {e}")
         return None
+
 
 
 def mandays_chatgpt(notes, aspect):
