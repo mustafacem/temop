@@ -10,10 +10,9 @@ from docx import Document
 
 
 
+
+
 def ask_chatgpt(question):
-    """
-    Inference for business proposal generation.
-    """
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
@@ -22,11 +21,11 @@ def ask_chatgpt(question):
                 {"role": "user", "content": question},
             ]
         )
-        answer = response.choices[0].message.content 
-        return answer
+        return response.choices[0].message.content
     except Exception as e:
-        print(f"Error: {e}")
+        st.error(f"Error in ask_chatgpt: {e}")
         return None
+
 
 
 
