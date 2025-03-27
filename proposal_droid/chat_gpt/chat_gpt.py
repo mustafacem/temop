@@ -7,11 +7,6 @@ import os
 
 
 
-openai_api = os.getenv("OPENAI_API_KEY")
-if openai_api is None:
-    raise ValueError("OpenAI key not specified!")
-
-client = OpenAI(api_key=openai_api)
 
 #client = openai.OpenAI(api_key=os.getenv("op.env"))
 
