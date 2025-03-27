@@ -4,10 +4,8 @@ from openai import OpenAI
 import requests
 
 import os 
-from dotenv import load_dotenv
 
 
-load_dotenv()
 
 openai_api = os.getenv("OPENAI_API_KEY")
 if openai_api is None:
