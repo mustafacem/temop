@@ -8,6 +8,8 @@ from io import BytesIO
 import openai
 from docx import Document
 
+# Define client as a global variable.
+client = None
 
 
 def ask_chatgpt(question):
@@ -15,9 +17,12 @@ def ask_chatgpt(question):
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else."},
+                {
+                    "role": "system",
+                    "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else.",
+                },
                 {"role": "user", "content": question},
-            ]
+            ],
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -33,9 +38,12 @@ def mandays_chatgpt(notes, aspect):
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": f"You are tasked with guessing {aspect} for price estimates for an AI startup. You will only receive notes and return an integer—nothing else."},
+                {
+                    "role": "system",
+                    "content": f"You are tasked with guessing {aspect} for price estimates for an AI startup. You will only receive notes and return an integer—nothing else.",
+                },
                 {"role": "user", "content": notes},
-            ]
+            ],
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -51,9 +59,12 @@ def checker(item, part):
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are tasked with checking if the provided text is suitable for the given part of a business proposal. If you think changes should be made, provide your recommendations, but keep them as short as possible."},
+                {
+                    "role": "system",
+                    "content": "You are tasked with checking if the provided text is suitable for the given part of a business proposal. If you think changes should be made, provide your recommendations, but keep them as short as possible.",
+                },
                 {"role": "user", "content": f"Part of business proposal: {item}. Provided text: {part}."},
-            ]
+            ],
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -69,9 +80,12 @@ def decoder(ocr_output, decoder_prompt):
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": f"You are tasked with creating readable text from bad OCR handwriting output. Follow these instructions for translation: {decoder_prompt}"},
+                {
+                    "role": "system",
+                    "content": f"You are tasked with creating readable text from bad OCR handwriting output. Follow these instructions for translation: {decoder_prompt}",
+                },
                 {"role": "user", "content": ocr_output},
-            ]
+            ],
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -144,9 +158,8 @@ def create_docx(items_dict):
     return buffer
 
 
-
 def main():
-    
+    global client
     openai_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
     if openai_api_key:
         openai.api_key = openai_api_key
