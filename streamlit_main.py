@@ -29,9 +29,9 @@ def create_docx(items_dict):
     return buffer
 
 def main():
-    openai_api_key = os.getenv("OPENAI_API_KEY")
+    
+    openai_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
     if openai_api_key:
-        # Initialize OpenAI API with the provided key
         openai.api_key = openai_api_key
 
     # Initialize session state variables
