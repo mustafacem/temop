@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 from PIL import Image
@@ -73,28 +72,9 @@ def extract_text_from_image(api_key, uploaded_file):
 
 
 def preprocess_handwritten_image(uploaded_file):
-    """
-    Preprocess the uploaded handwritten image file for OCR and return the preprocessed image.
-    """
-    # Load the image from the uploaded file
-    image = Image.open(uploaded_file).convert('L')
-    image_np = np.array(image)
 
-    # Check if the image is loaded properly
-    if image_np is None:
-        st.error("Error: Unable to load image.")
-        return None
 
-    # Step 1: Noise reduction
-    denoised_image = cv2.medianBlur(image_np, 1)
-
-    # Step 2: Binarization
-    _, binary_image = cv2.threshold(denoised_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Convert the binary image back to PIL Image format for OCR
-    preprocessed_image = Image.fromarray(binary_image)
-
-    return preprocessed_image
+    return uploaded_file
 
 
 def load_model_and_predict(image_path):
