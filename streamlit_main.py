@@ -6,7 +6,6 @@ from proposal_droid.whisper_speech_to_text.whisper_speech_to_text import transcr
 from proposal_droid.data_from_web.data_from_web import transcribe_english_youtube, extract_text_from_url
 from kd_streamlit import st_init, LanguageUI
 import os
-from dotenv import load_dotenv
 from io import BytesIO
 import openai
 from docx import Document
