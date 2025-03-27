@@ -8,10 +8,6 @@ from io import BytesIO
 import openai
 from docx import Document
 
-
-
-
-
 def ask_chatgpt(question):
     try:
         response = openai.ChatCompletion.create(
@@ -27,24 +23,21 @@ def ask_chatgpt(question):
         return None
 
 
-
-
 def mandays_chatgpt(notes, aspect):
     """
     Guess mandays for the given aspect for pricing estimation in an AI startup.
     """
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": f"You are tasked with guessing {aspect} for price estimates for an AI startup. You will only receive notes and return an integer—nothing else."},
                 {"role": "user", "content": notes},
             ]
         )
-        answer = response.choices[0].message.content 
-        return answer
+        return response.choices[0].message.content
     except Exception as e:
-        print(f"Error: {e}")
+        st.error(f"Error in mandays_chatgpt: {e}")
         return None
 
 
@@ -53,17 +46,16 @@ def checker(item, part):
     AI checks if the provided text is suitable for the given part of a business proposal and recommends changes if needed.
     """
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are tasked with checking if the provided text is suitable for the given part of a business proposal. If you think changes should be made, provide your recommendations, but keep them as short as possible."},
                 {"role": "user", "content": f"Part of business proposal: {item}. Provided text: {part}."},
             ]
         )
-        answer = response.choices[0].message.content 
-        return answer
+        return response.choices[0].message.content
     except Exception as e:
-        print(f"Error: {e}")
+        st.error(f"Error in checker: {e}")
         return None
 
 
@@ -72,17 +64,16 @@ def decoder(ocr_output, decoder_prompt):
     Translate OCR output from bad handwriting into readable text.
     """
     try:
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": f"You are tasked with creating readable text from bad OCR handwriting output. Follow these instructions for translation: {decoder_prompt}"},
                 {"role": "user", "content": ocr_output},
             ]
         )
-        answer = response.choices[0].message.content 
-        return answer
+        return response.choices[0].message.content
     except Exception as e:
-        print(f"Error: {e}")
+        st.error(f"Error in decoder: {e}")
         return None
 
 
@@ -149,6 +140,7 @@ def create_docx(items_dict):
     doc.save(buffer)
     buffer.seek(0)
     return buffer
+
 
 
 def main():
