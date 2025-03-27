@@ -8,9 +8,11 @@ from io import BytesIO
 import openai
 from docx import Document
 
+
+
 def ask_chatgpt(question):
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else."},
@@ -28,7 +30,7 @@ def mandays_chatgpt(notes, aspect):
     Guess mandays for the given aspect for pricing estimation in an AI startup.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": f"You are tasked with guessing {aspect} for price estimates for an AI startup. You will only receive notes and return an integer—nothing else."},
@@ -46,7 +48,7 @@ def checker(item, part):
     AI checks if the provided text is suitable for the given part of a business proposal and recommends changes if needed.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are tasked with checking if the provided text is suitable for the given part of a business proposal. If you think changes should be made, provide your recommendations, but keep them as short as possible."},
@@ -64,7 +66,7 @@ def decoder(ocr_output, decoder_prompt):
     Translate OCR output from bad handwriting into readable text.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": f"You are tasked with creating readable text from bad OCR handwriting output. Follow these instructions for translation: {decoder_prompt}"},
@@ -83,10 +85,10 @@ def process_items(items_dict, notes):
     """
     use_case_description = ask_chatgpt(f"Generate a use case description from the given notes: {notes}")
     if use_case_description is None:
-        print("Failed to generate use case description.")
+        st.error("Failed to generate use case description.")
         return
 
-    print(f"Use case description: {use_case_description}")
+    st.write(f"Use case description: {use_case_description}")
     response = input("Would you like to enter a custom use case description? (y/n): ").strip().lower()
     if response == 'y':
         use_case_description = input("Enter the desired use case description: ")
@@ -99,30 +101,30 @@ def process_items(items_dict, notes):
             value = ask_chatgpt(prompt)
 
             if value is None:
-                print(f"Failed to generate {item}.")
+                st.error(f"Failed to generate {item}.")
                 continue
 
-            print(f"Assigned value for {item}: {value}")
-            print("******************************************************************************************************************************")
+            st.write(f"Assigned value for {item}: {value}")
+            st.write("******************************************************************************************************************************")
             opinion_ai = checker(item, value)
 
             if opinion_ai is None:
-                print("Failed to check AI's opinion on this part.")
+                st.error("Failed to check AI's opinion on this part.")
                 continue
 
-            print(f"As AI, my opinion on this part of the proposal is: {opinion_ai}")
+            st.write(f"As AI, my opinion on this part of the proposal is: {opinion_ai}")
 
             response = input("Happy with the output? (y/n): ").strip().lower()
             if response == 'y':
                 task_successful = True
                 items_dict[item] = value
-                print(f"Value for {item} confirmed: {value}\n")
+                st.write(f"Value for {item} confirmed: {value}\n")
             else:
                 desired_changes = input(f"Enter desired changes for {item}: ")
 
-    print("Finalized proposal items:")
+    st.write("Finalized proposal items:")
     for key, value in items_dict.items():
-        print(f"{key}: {value}")
+        st.write(f"{key}: {value}")
 
 
 def create_docx(items_dict):
@@ -148,6 +150,9 @@ def main():
     openai_api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
     if openai_api_key:
         openai.api_key = openai_api_key
+        client = openai.OpenAI(api_key=openai_api_key)
+    else:
+        client = None  # Client will be None until a key is provided
 
     # Initialize session state variables
     if "notes" not in st.session_state:
