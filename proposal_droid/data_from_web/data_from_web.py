@@ -1,5 +1,4 @@
 import requests
-from bs4 import BeautifulSoup
 from requests.exceptions import RequestException
 from urllib.parse import urlparse
 import yt_dlp
@@ -48,17 +47,10 @@ def parse_html(html_content):
     This method removes script and style content and returns only visible text.
     """
     # Parse the HTML content
-    soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Remove script and style elements (which don't contain useful text)
-    for script_or_style in soup(['script', 'style']):
-        script_or_style.extract()
-
-    # Extract visible text
-    text = soup.get_text(separator=' ', strip=True)
 
     # Return the clean text
-    return text
+    return html_content
 
 def extract_text_from_url(url):
     """
