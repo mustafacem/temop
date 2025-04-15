@@ -5,7 +5,7 @@ import requests
 
 import os 
 
-openai.api_key = api_key
+openai.api_key = os.getenv("OPENAI_API_KEY", "")
 
 
 client = openai.OpenAI(api_key=os.getenv("op.env"))
