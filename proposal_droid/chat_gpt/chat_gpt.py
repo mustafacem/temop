@@ -5,10 +5,10 @@ import requests
 
 import os 
 
+openai.api_key = api_key
 
 
-
-#client = openai.OpenAI(api_key=os.getenv("op.env"))
+client = openai.OpenAI(api_key=os.getenv("op.env"))
 
 def ask_chatgpt(question):
     """
@@ -28,7 +28,33 @@ def ask_chatgpt(question):
     except Exception as e:
         print(f"Error: {e}")
         return None
-
+def ask_chatgpt1(question):
+    """
+    Inference for business proposal generation using OpenAI's ChatCompletion API.
+    
+    Args:
+        question (str): The prompt for the ChatGPT model.
+        
+    Returns:
+        str or None: The response text from ChatGPT if successful; otherwise, None.
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are tasked with helping business proposal creation. Just create the desired part and don't write anything else."
+                },
+                {"role": "user", "content": question},
+            ]
+        )
+        answer = response.choices[0].message.content
+        return answer
+    except Exception as e:
+        # You can later adjust this to use a logging framework instead of print.
+        print(f"Error in ask_chatgpt: {e}")
+        return None
 
 def mandays_chatgpt(notes, aspect):
     """
