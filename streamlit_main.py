@@ -97,10 +97,6 @@ def process_items(items_dict, notes):
     """
     AI generates necessary parts of the proposal and assigns them to items_dict. User can modify them via prompts.
     """
-    use_case_description = ask_chatgpt(f"Generate a use case description from the given notes: {notes}")
-    if use_case_description is None:
-        st.error("Failed to generate use case description.")
-        return
 
     use_case_description = ask_chatgpt1(f"Generate a use case description from the given notes: {notes}")
     if use_case_description is None:
