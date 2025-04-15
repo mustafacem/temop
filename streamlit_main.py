@@ -7,7 +7,7 @@ import os
 from io import BytesIO
 import openai
 from docx import Document
-
+from proposal_droid.chat_gpt.chat_gpt import ask_chatgpt1, checker
 # Define client as a global variable.
 client = None
 
@@ -102,6 +102,11 @@ def process_items(items_dict, notes):
         st.error("Failed to generate use case description.")
         return
 
+    use_case_description = ask_chatgpt1(f"Generate a use case description from the given notes: {notes}")
+    if use_case_description is None:
+        st.error("Failed to generate use case description.")
+        return
+        
     st.write(f"Use case description: {use_case_description}")
     response = input("Would you like to enter a custom use case description? (y/n): ").strip().lower()
     if response == 'y':
